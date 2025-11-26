@@ -1,0 +1,1813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cash App Reconciliation System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f9fafb;
+            color: #111827;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 240px;
+            height: 100vh;
+            background: #1e293b;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s;
+            z-index: 40;
+        }
+
+        .sidebar.collapsed {
+            width: 64px;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-header h1 {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .sidebar.collapsed .sidebar-header h1 {
+            display: none;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 4px;
+            transition: background 0.2s;
+        }
+
+        .nav-item:hover {
+            background: #334155;
+        }
+
+        .nav-item.active {
+            background: #334155;
+        }
+
+        .sidebar.collapsed .nav-item span {
+            display: none;
+        }
+
+        .menu-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .menu-btn:hover {
+            background: #334155;
+        }
+
+        .main-content {
+            margin-left: 240px;
+            transition: margin-left 0.3s;
+        }
+
+        .main-content.expanded {
+            margin-left: 64px;
+        }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-left h2 {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            padding: 8px 8px 8px 36px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            width: 256px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .bell-icon {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .notification-dot {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+        }
+
+        .content {
+            padding: 24px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 30px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .stat-count {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .table-header {
+            padding: 16px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 16px;
+        }
+
+        .tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: #6b7280;
+            background: none;
+            border: none;
+            font-size: 14px;
+        }
+
+        .tab.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+            font-weight: 500;
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #d1d5db;
+            background: white;
+        }
+
+        .btn:hover {
+            background: #f9fafb;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-dark {
+            background: #111827;
+            color: white;
+            border: none;
+        }
+
+        .btn-dark:hover {
+            background: #1f2937;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f9fafb;
+        }
+
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6b7280;
+        }
+
+        td {
+            padding: 16px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        .smart-match {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #10b981;
+            font-size: 14px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6b7280;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .customer-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .customer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .summary-section {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 16px;
+            margin-top: 16px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+
+        .info-card {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .info-card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .info-label {
+            color: #6b7280;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #6b7280;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 16px;
+        }
+
+        .back-btn:hover {
+            color: #111827;
+        }
+
+        .payment-amount {
+            font-size: 36px;
+            font-weight: bold;
+        }
+
+        .audit-item {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .audit-dot {
+            width: 8px;
+            height: 8px;
+            background: #9ca3af;
+            border-radius: 50%;
+            margin-top: 8px;
+            flex-shrink: 0;
+        }
+
+        .audit-content {
+            flex: 1;
+        }
+
+        .audit-title {
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .audit-time {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 32px;
+            color: #9ca3af;
+        }
+
+        .select-wrapper {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .select-wrapper select {
+            flex: 1;
+        }
+
+        .icon-btn {
+            padding: 8px;
+            background: #374151;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .icon-btn:hover {
+            background: #1f2937;
+        }
+
+        .allocated-box {
+            display: inline-block;
+            padding: 6px 12px;
+            background: #374151;
+            color: white;
+            border-radius: 4px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .payment-id-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .plus-btn {
+            color: #9ca3af;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 4px;
+        }
+
+        .plus-btn:hover {
+            color: #4b5563;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .payment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .match-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .text-green {
+            color: #10b981;
+        }
+
+        .text-orange {
+            color: #f59e0b;
+        }
+
+        .text-gray {
+            color: #6b7280;
+        }
+        
+        .text-red {
+            color: #ef4444;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: capitalize;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .status-approved {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-draft {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .status-posted {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-rejected {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h1>Amagi AR</h1>
+            <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-item">
+                <span>🏠</span>
+                <span>Home</span>
+            </div>
+            <div class="nav-item">
+                <span>📥</span>
+                <span>Inbox</span>
+            </div>
+            <div class="nav-item">
+                <span>👥</span>
+                <span>Customers</span>
+            </div>
+            <div class="nav-item">
+                <span>📄</span>
+                <span>Transactions</span>
+            </div>
+            <div class="nav-item">
+                <span>📋</span>
+                <span>Collections</span>
+            </div>
+            <div class="nav-item">
+                <span>📊</span>
+                <span>Reports</span>
+            </div>
+            <div class="nav-item active">
+                <span>💰</span>
+                <span>Cash App</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <button class="back-btn hidden" id="backBtn" onclick="showDashboard()">
+                    ← Back
+                </button>
+                <h2 id="pageTitle">Cash App</h2>
+                <span class="text-gray" id="customerName"></span>
+            </div>
+            <div class="header-right">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" placeholder="Search">
+                </div>
+                <div class="bell-icon">
+                    🔔
+                    <span class="notification-dot"></span>
+                </div>
+                <div class="user-avatar">AD</div>
+            </div>
+        </div>
+
+        <!-- Dashboard View -->
+        <div class="content" id="dashboardView">
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Unapplied</div>
+                    <div class="stat-value">$175,500</div>
+                    <div class="stat-count">5 payments</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Full Match</div>
+                    <div class="stat-value">$175,500</div>
+                    <div class="stat-count">5 payments</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Partial Match</div>
+                    <div class="stat-value">$0</div>
+                    <div class="stat-count">0 payments</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">No Match</div>
+                    <div class="stat-value">$0</div>
+                    <div class="stat-count">0 payments</div>
+                </div>
+            </div>
+
+            <!-- Payments Table -->
+            <div class="table-container">
+                <div class="table-header">
+                    <div class="tabs">
+                        <button class="tab active">Payments</button>
+                        <button class="tab">Remittances</button>
+                        <button class="tab">Credit Memos</button>
+                    </div>
+                    <div class="table-actions">
+                        <div class="search-box">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" placeholder="Search">
+                        </div>
+                        <button class="btn">
+                            ⬇ Export
+                        </button>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Payment ID</th>
+                            <th>Customer Name</th>
+                            <th>Payment Date</th>
+                            <th>Payment Description</th>
+                            <th>Unapplied Amount</th>
+                            <th>Smart Match</th>
+                            <th>Adjustment Status</th>
+                            <th>Approval Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paymentsTable">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Detail View -->
+        <div class="content hidden" id="detailView">
+            <div class="action-btns">
+                <button class="btn btn-primary" onclick="alert('Adjustments sent for approval!')">
+                    Send Adjustments for Approval
+                </button>
+                <button class="btn" onclick="openEmailModal()">
+                    ✉️ Request Payment Details
+                </button>
+            </div>
+
+            <div class="detail-grid">
+                <div>
+                    <!-- Payment Amount -->
+                    <div class="info-card" style="margin-bottom: 24px;">
+                        <div class="payment-header">
+                            <div>
+                                <div class="stat-label">Received Payment</div>
+                                <div class="payment-amount" id="detailAmount">$35,000</div>
+                            </div>
+                            <div class="match-btns">
+                                <button class="btn btn-primary">✨ Smart Match</button>
+                                <button class="btn">Manual</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Outstanding Invoices -->
+                    <div class="info-card" style="margin-bottom: 24px;">
+                        <h3>Outstanding Invoices</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox"></th>
+                                    <th>Invoice #</th>
+                                    <th>Date</th>
+                                    <th>Due Date</th>
+                                    <th>Amount</th>
+                                    <th>Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoicesTable">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Apply Payment -->
+                    <div class="info-card">
+                        <div class="payment-header">
+                            <h3>Apply Payment</h3>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 14px; color: #6b7280;">Remittance (2)</span>
+                                <span>▼</span>
+                            </div>
+                        </div>
+                        <div id="applyPaymentContent">
+                            <div class="empty-state">No invoices selected</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <!-- Payment Information -->
+                    <div class="info-card" style="margin-bottom: 24px;">
+                        <h3>Payment Information</h3>
+                        <div class="info-row">
+                            <span class="info-label">Total Payment</span>
+                            <span id="infoTotalPayment">$35,000.00</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Total Applied</span>
+                            <span class="text-green" id="infoTotalApplied">$0.00</span>
+                        </div>
+                        <div class="info-row" style="border-top: 1px solid #e5e7eb; padding-top: 12px;">
+                            <span class="info-label">Unapplied Balance</span>
+                            <span class="text-orange" id="infoUnapplied">$35,000.00</span>
+                        </div>
+                        <div style="border-top: 1px solid #e5e7eb; padding-top: 12px; margin-top: 12px;">
+                            <div class="info-row">
+                                <span class="info-label">Account</span>
+                                <span id="infoAccount">Bank Account Name</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Reference</span>
+                                <span id="infoReference">REF-4589</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Payment Date</span>
+                                <span id="infoDate">Apr 28, 2025</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Payment Mode</span>
+                                <span id="infoMode">Wire Transfer</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Source</span>
+                                <span id="infoSource">Bank Statement</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audit Trail -->
+                    <div class="info-card">
+                        <h3>Audit Trail</h3>
+                        <div class="audit-item">
+                            <div class="audit-dot"></div>
+                            <div class="audit-content">
+                                <div class="audit-title">Payment Received</div>
+                                <div class="audit-time">28/04/2025, 16:00:00</div>
+                                <div class="audit-time">By: System</div>
+                                <div class="audit-time">Automatic import from bank feed</div>
+                            </div>
+                        </div>
+                        <div class="audit-item">
+                            <div class="audit-dot"></div>
+                            <div class="audit-content">
+                                <div class="audit-title">SmartMatch Applied</div>
+                                <div class="audit-time">28/04/2025, 16:05:00</div>
+                                <div class="audit-time">By: AI System</div>
+                                <div class="audit-time" id="auditMatches">Matched to INV-2025-1234, INV-2025-1235</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Split Payment Modal -->
+    <div class="modal" id="splitModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Split Payment</h2>
+                <button class="close-btn" onclick="closeSplitModal()">×</button>
+            </div>
+            
+            <div class="select-wrapper">
+                <select id="customerSelect">
+                    <option value="">Select customer</option>
+                    <option value="XYZ Media Services">XYZ Media Services</option>
+                    <option value="StreamFlow Ltd">StreamFlow Ltd</option>
+                    <option value="Global Broadcasting">Global Broadcasting</option>
+                    <option value="TechCorp Inc">TechCorp Inc</option>
+                </select>
+                <button class="icon-btn" onclick="addCustomer()">+</button>
+            </div>
+
+            <div id="customersContainer">
+                <div class="empty-state">No customers selected</div>
+            </div>
+
+            <div class="summary-section" id="splitSummary" style="display: none;">
+                <div class="summary-row">
+                    <span class="info-label">Available Amount</span>
+                    <span id="availableAmount">$35,000.00</span>
+                </div>
+                <div class="summary-row">
+                    <span class="info-label">Total Allocated</span>
+                    <span id="totalAllocated">$0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span class="info-label">Remaining</span>
+                    <span id="remaining">$35,000.00</span>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn" onclick="closeSplitModal()">Cancel</button>
+                <button class="btn btn-dark" onclick="submitSplit()" id="submitSplitBtn" disabled>Split Payment</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Adjustment Modal -->
+    <div class="modal" id="adjustmentModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Add Adjustment</h2>
+                <button class="close-btn" onclick="closeAdjustmentModal()">×</button>
+            </div>
+            
+            <div class="form-group">
+                <label>Adjustment Type</label>
+                <select id="adjustmentType">
+                    <option value="TDS">TDS</option>
+                    <option value="Discount">Discount</option>
+                    <option value="Late Fee">Late Fee</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Amount</label>
+                <input type="number" id="adjustmentAmount" placeholder="100">
+            </div>
+
+            <div class="form-group">
+                <label>Description (Optional)</label>
+                <textarea id="adjustmentDesc" rows="3" placeholder="Enter description"></textarea>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn" onclick="closeAdjustmentModal()">Cancel</button>
+                <button class="btn btn-dark" onclick="submitAdjustment()">Add Adjustment</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Modal -->
+    <div class="modal" id="emailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Request Payment Receipt</h2>
+                <button class="close-btn" onclick="closeEmailModal()">×</button>
+            </div>
+            
+            <div class="form-group">
+                <label>From</label>
+                <input type="email" value="accounts@abc.com" readonly style="background: #f9fafb;">
+            </div>
+
+            <div class="form-group">
+                <label>To</label>
+                <input type="email" id="emailTo" value="customer@cbd.com">
+            </div>
+
+            <div class="form-group">
+                <label>Subject</label>
+                <input type="text" id="emailSubject" value="Payment Receipt Request: Payment #BANK PMT-001">
+            </div>
+
+            <div class="form-group">
+                <label>Message</label>
+                <textarea id="emailMessage" rows="10"></textarea>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn" onclick="closeEmailModal()">Cancel</button>
+                <button class="btn btn-dark" onclick="sendEmail()">✉️ Send Email</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample payment data with new status columns
+        const paymentData = [
+            {
+                id: "BANK PMT 001",
+                customer: "Acme Corporation",
+                date: "2025-04-28",
+                displayDate: "Apr 28, 2025",
+                description: "Wire Transfer - Invoice Settlement",
+                amount: 35000.00,
+                unapplied: 35000.00,
+                match: "INV-2025-1234, INV-2025-1235",
+                status: "pending",
+                reference: "REF-4589",
+                paymentMode: "Wire Transfer",
+                source: "Bank Statement",
+                adjustmentStatus: "No Adjustments",
+                approvalStatus: "Pending Approval",
+                invoices: [
+                    { id: 'INV-2025-1234', date: 'Mar 15, 2025', dueDate: 'Apr 15, 2025', amount: 20000, balance: 20000 },
+                    { id: 'INV-2025-1235', date: 'Mar 20, 2025', dueDate: 'Apr 20, 2025', amount: 15000, balance: 15000 }
+                ]
+            },
+            {
+                id: "BANK PMT 002",
+                customer: "XYZ Media Services",
+                date: "2025-04-27",
+                displayDate: "Apr 27, 2025",
+                description: "ACH Payment - April Services",
+                amount: 18500.00,
+                unapplied: 0,
+                match: "INV-2025-1240",
+                status: "approved",
+                reference: "REF-4590",
+                paymentMode: "ACH",
+                source: "Bank Statement",
+                adjustmentStatus: "Adjustments Added",
+                approvalStatus: "Approved"
+            },
+            {
+                id: "BANK PMT 003",
+                customer: "MediaTech Inc",
+                date: "2025-04-26",
+                displayDate: "Apr 26, 2025",
+                description: "Wire Transfer Subscription",
+                amount: 15000.00,
+                unapplied: 5000.00,
+                match: "INV-2025-1236",
+                status: "pending",
+                reference: "REF-4591",
+                paymentMode: "Wire Transfer",
+                source: "Bank Statement",
+                adjustmentStatus: "Pending Review",
+                approvalStatus: "Draft"
+            },
+            {
+                id: "BANK PMT 004",
+                customer: "StreamFlow Ltd",
+                date: "2025-04-25",
+                displayDate: "Apr 25, 2025",
+                description: "International Wire - Q2 2025 Services",
+                amount: 42000.00,
+                unapplied: 42000.00,
+                match: "INV-2025-1237, INV-2025-1250",
+                status: "posted",
+                reference: "REF-4592",
+                paymentMode: "Wire Transfer",
+                source: "Bank Statement",
+                adjustmentStatus: "No Adjustments",
+                approvalStatus: "Posted"
+            },
+            {
+                id: "BANK PMT 005",
+                customer: "Global Broadcasting",
+                date: "2025-04-24",
+                displayDate: "Apr 24, 2025",
+                description: "ACH Transfer Contract #GBC-2025-042",
+                amount: 65000.00,
+                unapplied: 65000.00,
+                match: "INV-2025-1238, INV-2025-1245, INV-2025-1252",
+                status: "approved",
+                reference: "REF-4593",
+                paymentMode: "ACH",
+                source: "Bank Statement",
+                adjustmentStatus: "Rejected",
+                approvalStatus: "Approved"
+            }
+        ];
+
+        // Remittance data
+        const remittancesData = [
+            {
+                id: "REM-001",
+                customer: "Acme Corporation",
+                date: "2025-04-28",
+                amount: 35000.00,
+                status: "pending",
+                reference: "Wire Transfer Ref: WT785634"
+            },
+            {
+                id: "REM-002", 
+                customer: "XYZ Media Services",
+                date: "2025-04-27",
+                amount: 18500.00,
+                status: "matched",
+                reference: "ACH Payment - April Services"
+            },
+            {
+                id: "REM-003",
+                customer: "MediaTech Inc",
+                date: "2025-04-26",
+                amount: 15000.00,
+                status: "pending",
+                reference: "Wire Transfer Subscription"
+            }
+        ];
+
+        // Credit Memos data
+        const creditMemosData = [
+            {
+                id: "CM-2025-001",
+                customer: "Acme Corporation",
+                date: "20-04-2025",
+                relatedInvoice: "INV-2025-1200",
+                amount: 2500,
+                reason: "Rate Adjustment",
+                status: "Unapplied"
+            },
+            {
+                id: "CM-2025-002",
+                customer: "XYZ Media Services",
+                date: "18-04-2025",
+                relatedInvoice: "INV-2025-1210",
+                amount: 1500,
+                reason: "Service Credit",
+                status: "Unapplied"
+            },
+            {
+                id: "CM-2025-003",
+                customer: "MediaTech Inc",
+                date: "15-04-2025",
+                relatedInvoice: "INV-2025-1220",
+                amount: 3000,
+                reason: "Billing Error",
+                status: "Unapplied"
+            },
+            {
+                id: "CM-2025-004",
+                customer: "StreamFlow Ltd",
+                date: "10-04-2025",
+                relatedInvoice: "INV-2025-1190",
+                amount: 5000,
+                reason: "Contract Adjustment",
+                status: "Applied"
+            },
+            {
+                id: "CM-2025-005",
+                customer: "Global Broadcasting",
+                date: "05-04-2025",
+                relatedInvoice: "INV-2025-1180",
+                amount: 7500,
+                reason: "Dispute Resolution",
+                status: "Unapplied"
+            }
+        ];
+
+        let currentPayment = null;
+        let selectedInvoices = [];
+        let splitCustomers = [];
+        let currentView = 'payments';
+        let allocatedAmounts = {};
+        let isManualMode = false;
+
+        // Initialize
+        function init() {
+            renderPaymentsTable();
+            setupTabListeners();
+        }
+
+        // Setup tab event listeners
+        function setupTabListeners() {
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach((tab, index) => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    if (index === 0) {
+                        currentView = 'payments';
+                        renderPaymentsTable();
+                        updateTableHeaders('payments');
+                    } else if (index === 1) {
+                        currentView = 'remittances';
+                        renderRemittancesTable();
+                        updateTableHeaders('remittances');
+                    } else if (index === 2) {
+                        currentView = 'credit';
+                        renderCreditMemosTable();
+                        updateTableHeaders('credit');
+                    }
+                });
+            });
+        }
+
+        // Update table headers based on current view
+        function updateTableHeaders(view) {
+            const thead = document.querySelector('thead tr');
+            if (view === 'payments') {
+                thead.innerHTML = `
+                    <th>Payment ID</th>
+                    <th>Customer Name</th>
+                    <th>Payment Date</th>
+                    <th>Payment Description</th>
+                    <th>Unapplied Amount</th>
+                    <th>Smart Match</th>
+                    <th>Adjustment Status</th>
+                    <th>Approval Status</th>
+                    <th>Actions</th>
+                `;
+            } else if (view === 'remittances') {
+                thead.innerHTML = `
+                    <th>Remittance ID</th>
+                    <th>Customer Name</th>
+                    <th>Remittance Date</th>
+                    <th>Reference</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                `;
+            } else if (view === 'credit') {
+                thead.innerHTML = `
+                    <th>Credit Memo ID</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Related Invoice</th>
+                    <th>Amount</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                `;
+            }
+        }
+
+        // Render payments table with new columns
+        function renderPaymentsTable() {
+            const tbody = document.getElementById('paymentsTable');
+            tbody.innerHTML = '';
+            
+            paymentData.forEach(payment => {
+                // Status badge styling for Adjustment Status
+                let adjustmentClass = 'text-gray';
+                let adjustmentBadge = '';
+                if (payment.adjustmentStatus === 'Adjustments Added') {
+                    adjustmentClass = 'text-green';
+                    adjustmentBadge = 'status-badge status-approved';
+                } else if (payment.adjustmentStatus === 'Pending Review') {
+                    adjustmentClass = 'text-orange';
+                    adjustmentBadge = 'status-badge status-pending';
+                } else if (payment.adjustmentStatus === 'Rejected') {
+                    adjustmentClass = 'text-red';
+                    adjustmentBadge = 'status-badge status-rejected';
+                } else {
+                    adjustmentBadge = 'status-badge status-draft';
+                }
+                
+                // Status badge styling for Approval Status
+                let approvalClass = 'text-gray';
+                let approvalBadge = '';
+                if (payment.approvalStatus === 'Approved') {
+                    approvalClass = 'text-green';
+                    approvalBadge = 'status-badge status-approved';
+                } else if (payment.approvalStatus === 'Pending Approval') {
+                    approvalClass = 'text-orange';
+                    approvalBadge = 'status-badge status-pending';
+                } else if (payment.approvalStatus === 'Draft') {
+                    approvalClass = 'text-gray';
+                    approvalBadge = 'status-badge status-draft';
+                } else if (payment.approvalStatus === 'Posted') {
+                    approvalClass = 'text-green';
+                    approvalBadge = 'status-badge status-posted';
+                }
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <div class="payment-id-cell">
+                            <span style="font-weight: 500;">${payment.id}</span>
+                            <button class="plus-btn" onclick="openSplitModal('${payment.id}')">+</button>
+                        </div>
+                    </td>
+                    <td>${payment.customer}</td>
+                    <td>${payment.displayDate}</td>
+                    <td style="color: #6b7280;">${payment.description}</td>
+                    <td style="font-weight: 500;">$${payment.unapplied.toLocaleString()}</td>
+                    <td>
+                        <div class="smart-match">
+                            <span>✓</span>
+                            <span>${payment.match}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="${adjustmentBadge}">
+                            ${payment.adjustmentStatus}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="${approvalBadge}">
+                            ${payment.approvalStatus}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-primary" onclick="showDetail('${payment.id}')">Apply</button>
+                        <button class="btn" onclick="viewPayment('${payment.id}')">View</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Render remittances table
+        function renderRemittancesTable() {
+            const tbody = document.getElementById('paymentsTable');
+            tbody.innerHTML = '';
+            
+            remittancesData.forEach(remittance => {
+                let statusClass = 'text-orange';
+                let statusText = remittance.status;
+                if (remittance.status === 'matched') {
+                    statusClass = 'text-green';
+                } else if (remittance.status === 'processed') {
+                    statusClass = 'text-green';
+                }
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <div class="payment-id-cell">
+                            <span style="font-weight: 500;">${remittance.id}</span>
+                        </div>
+                    </td>
+                    <td>${remittance.customer}</td>
+                    <td>${remittance.date}</td>
+                    <td style="color: #6b7280;">${remittance.reference}</td>
+                    <td style="font-weight: 500;">$${remittance.amount.toLocaleString()}</td>
+                    <td>
+                        <span class="${statusClass}" style="text-transform: capitalize;">${statusText}</span>
+                    </td>
+                    <td>
+                        <button class="btn btn-primary" onclick="processRemittance('${remittance.id}')">Process</button>
+                        <button class="btn" onclick="viewRemittance('${remittance.id}')">View</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Render credit memos table
+        function renderCreditMemosTable() {
+            const tbody = document.getElementById('paymentsTable');
+            tbody.innerHTML = '';
+            
+            creditMemosData.forEach(memo => {
+                let statusClass = 'text-orange';
+                let actionBtn = `<button class="btn btn-primary" onclick="applyCreditMemo('${memo.id}')">Apply</button>`;
+                
+                if (memo.status === 'Applied') {
+                    statusClass = 'text-green';
+                    actionBtn = `<button class="btn" onclick="viewCreditMemo('${memo.id}')">View</button>`;
+                }
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${memo.id}</td>
+                    <td>${memo.customer}</td>
+                    <td>${memo.date}</td>
+                    <td>${memo.relatedInvoice}</td>
+                    <td style="font-weight: 500;">$${memo.amount.toLocaleString()}</td>
+                    <td style="color: #6b7280;">${memo.reason}</td>
+                    <td>
+                        <span class="${statusClass}" style="text-transform: capitalize;">${memo.status}</span>
+                    </td>
+                    <td>${actionBtn}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Payment actions
+        function viewPayment(paymentId) {
+            const payment = paymentData.find(p => p.id === paymentId);
+            if (payment) {
+                alert(`Viewing payment details:\n\nID: ${payment.id}\nCustomer: ${payment.customer}\nAmount: $${payment.amount.toLocaleString()}\nStatus: ${payment.status}\nMatch: ${payment.match}\nAdjustment Status: ${payment.adjustmentStatus}\nApproval Status: ${payment.approvalStatus}`);
+            }
+        }
+
+        // Remittance actions
+        function processRemittance(remittanceId) {
+            const remittance = remittancesData.find(r => r.id === remittanceId);
+            if (remittance) {
+                showLoading();
+                setTimeout(() => {
+                    hideLoading();
+                    remittance.status = 'processed';
+                    renderRemittancesTable();
+                    alert(`Remittance ${remittanceId} processed successfully!`);
+                }, 1500);
+            }
+        }
+
+        function viewRemittance(remittanceId) {
+            const remittance = remittancesData.find(r => r.id === remittanceId);
+            if (remittance) {
+                alert(`Viewing remittance details:\n\nID: ${remittance.id}\nCustomer: ${remittance.customer}\nAmount: $${remittance.amount.toLocaleString()}\nStatus: ${remittance.status}\nReference: ${remittance.reference}`);
+            }
+        }
+
+        // Credit Memo actions
+        function applyCreditMemo(memoId) {
+            const memo = creditMemosData.find(m => m.id === memoId);
+            if (memo) {
+                showLoading();
+                setTimeout(() => {
+                    hideLoading();
+                    memo.status = 'Applied';
+                    renderCreditMemosTable();
+                    alert(`Credit Memo ${memoId} applied successfully!`);
+                }, 1500);
+            }
+        }
+
+        function viewCreditMemo(memoId) {
+            const memo = creditMemosData.find(m => m.id === memoId);
+            if (memo) {
+                alert(`Viewing credit memo details:\n\nID: ${memo.id}\nCustomer: ${memo.customer}\nAmount: $${memo.amount.toLocaleString()}\nStatus: ${memo.status}\nReason: ${memo.reason}\nRelated Invoice: ${memo.relatedInvoice}`);
+            }
+        }
+
+        // Loading utility functions
+        function showLoading() {
+            let overlay = document.getElementById('loadingOverlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'loadingOverlay';
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0,0,0,0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                    color: white;
+                    font-size: 18px;
+                `;
+                overlay.innerHTML = `
+                    <div style="background: white; padding: 20px; border-radius: 8px; color: #111827;">
+                        <div style="text-align: center;">
+                            <div style="margin-bottom: 10px;">Processing...</div>
+                            <div style="width: 20px; height: 20px; border: 2px solid #e5e7eb; border-top: 2px solid #2563eb; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+                
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            overlay.style.display = 'flex';
+        }
+
+        function hideLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+        }
+
+        // Toggle sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        }
+
+        // Show detail view (Payment Details)
+        function showDetail(paymentId) {
+            currentPayment = paymentData.find(p => p.id === paymentId);
+            if (!currentPayment) return;
+
+            selectedInvoices = [];
+            allocatedAmounts = {};
+            isManualMode = false;
+            
+            document.getElementById('dashboardView').classList.add('hidden');
+            document.getElementById('detailView').classList.remove('hidden');
+            document.getElementById('backBtn').classList.remove('hidden');
+            document.getElementById('pageTitle').textContent = `Payments / #${currentPayment.id}`;
+            document.getElementById('customerName').textContent = currentPayment.customer;
+
+            document.getElementById('detailAmount').textContent = `$${currentPayment.amount.toLocaleString()}`;
+            document.getElementById('infoTotalPayment').textContent = `$${currentPayment.amount.toLocaleString()}.00`;
+            document.getElementById('infoTotalApplied').textContent = '$0.00';
+            document.getElementById('infoUnapplied').textContent = `$${currentPayment.unapplied.toLocaleString()}.00`;
+            document.getElementById('infoAccount').textContent = 'Bank Account Name';
+            document.getElementById('infoReference').textContent = currentPayment.reference;
+            document.getElementById('infoDate').textContent = currentPayment.displayDate;
+            document.getElementById('infoMode').textContent = currentPayment.paymentMode;
+            document.getElementById('infoSource').textContent = currentPayment.source;
+            document.getElementById('auditMatches').textContent = `Matched to ${currentPayment.match}`;
+
+            const manualBtn = document.querySelector('.match-btns .btn:not(.btn-primary)');
+            manualBtn.onclick = enableManualMode;
+
+            renderInvoices();
+        }
+
+        // Enable manual mode
+        function enableManualMode() {
+            isManualMode = true;
+            const smartBtn = document.querySelector('.match-btns .btn-primary');
+            const manualBtn = document.querySelector('.match-btns .btn:not(.btn-primary)');
+            
+            smartBtn.classList.remove('btn-primary');
+            manualBtn.classList.add('btn-primary');
+            
+            updateApplyPayment();
+        }
+
+        // Enable smart match mode
+        function enableSmartMode() {
+            isManualMode = false;
+            const smartBtn = document.querySelector('.match-btns .btn-primary');
+            const manualBtn = document.querySelector('.match-btns .btn:not(.btn-primary)');
+            
+            manualBtn.classList.remove('btn-primary');
+            smartBtn.classList.add('btn-primary');
+            
+            updateApplyPayment();
+        }
+
+        // Show dashboard
+        function showDashboard() {
+            document.getElementById('dashboardView').classList.remove('hidden');
+            document.getElementById('detailView').classList.add('hidden');
+            document.getElementById('backBtn').classList.add('hidden');
+            document.getElementById('pageTitle').textContent = 'Cash App';
+            document.getElementById('customerName').textContent = '';
+            currentPayment = null;
+            
+            if (currentView === 'payments') {
+                renderPaymentsTable();
+            } else if (currentView === 'remittances') {
+                renderRemittancesTable();
+            } else if (currentView === 'credit') {
+                renderCreditMemosTable();
+            }
+        }
+
+        // Render invoices
+        function renderInvoices() {
+            const tbody = document.getElementById('invoicesTable');
+            tbody.innerHTML = '';
+            
+            if (!currentPayment.invoices) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #6b7280;">No invoices available</td></tr>';
+                return;
+            }
+
+            currentPayment.invoices.forEach(invoice => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="checkbox" onchange="toggleInvoice('${invoice.id}')"></td>
+                    <td style="font-weight: 500;">${invoice.id}</td>
+                    <td>${invoice.date}</td>
+                    <td>${invoice.dueDate}</td>
+                    <td>$${invoice.amount.toLocaleString()}</td>
+                    <td>$${invoice.balance.toLocaleString()}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Toggle invoice selection
+        function toggleInvoice(invoiceId) {
+            const index = selectedInvoices.indexOf(invoiceId);
+            if (index > -1) {
+                selectedInvoices.splice(index, 1);
+                delete allocatedAmounts[invoiceId];
+            } else {
+                selectedInvoices.push(invoiceId);
+                const invoice = currentPayment.invoices.find(i => i.id === invoiceId);
+                if (invoice) {
+                    allocatedAmounts[invoiceId] = isManualMode ? 0 : invoice.balance;
+                }
+            }
+            updateApplyPayment();
+        }
+
+        // Update allocated amount for an invoice
+        function updateAllocatedAmount(invoiceId, amount) {
+            const invoice = currentPayment.invoices.find(i => i.id === invoiceId);
+            if (invoice) {
+                const maxAmount = Math.min(invoice.balance, currentPayment.unapplied);
+                allocatedAmounts[invoiceId] = Math.min(amount, maxAmount);
+                updateApplyPayment();
+            }
+        }
+
+        // Update apply payment section
+        function updateApplyPayment() {
+            const container = document.getElementById('applyPaymentContent');
+            
+            if (selectedInvoices.length === 0) {
+                container.innerHTML = '<div class="empty-state">No invoices selected</div>';
+                document.getElementById('infoTotalApplied').textContent = '$0.00';
+                document.getElementById('infoUnapplied').textContent = `$${currentPayment.unapplied.toLocaleString()}.00`;
+                return;
+            }
+
+            let totalApplied = 0;
+            let html = '<table style="width: 100%;"><thead><tr><th style="text-align: left; padding: 12px 0; font-size: 14px; font-weight: 500; color: #6b7280;">Invoice</th><th style="text-align: left; padding: 12px 0; font-size: 14px; font-weight: 500; color: #6b7280;">Invoice Balance</th><th style="text-align: left; padding: 12px 0; font-size: 14px; font-weight: 500; color: #6b7280;">Balance Allocated</th><th style="text-align: left; padding: 12px 0; font-size: 14px; font-weight: 500; color: #6b7280;">Adjustments</th></tr></thead><tbody>';
+            
+            selectedInvoices.forEach(invId => {
+                const invoice = currentPayment.invoices.find(i => i.id === invId);
+                if (invoice) {
+                    const allocated = allocatedAmounts[invId] || 0;
+                    totalApplied += allocated;
+                    
+                    const amountInput = isManualMode ? 
+                        `<input type="number" value="${allocated}" onchange="updateAllocatedAmount('${invId}', parseFloat(this.value) || 0)" style="width: 80px; padding: 4px; border: 1px solid #d1d5db; border-radius: 4px;" min="0" max="${Math.min(invoice.balance, currentPayment.unapplied)}">` :
+                        `<span class="allocated-box">$${allocated.toLocaleString()}</span>`;
+                    
+                    html += `
+                        <tr style="border-top: 1px solid #e5e7eb;">
+                            <td style="padding: 12px 0;">${invoice.id}</td>
+                            <td style="padding: 12px 0;">$${invoice.balance.toLocaleString()}</td>
+                            <td style="padding: 12px 0;">
+                                ${amountInput}
+                            </td>
+                            <td style="padding: 12px 0;">
+                                <button class="btn" onclick="openAdjustmentModal()" style="padding: 4px 8px; font-size: 13px;">
+                                    + Add Adjustments
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+
+            const unapplied = currentPayment.amount - totalApplied;
+            document.getElementById('infoTotalApplied').textContent = `$${totalApplied.toLocaleString()}.00`;
+            document.getElementById('infoUnapplied').textContent = `$${unapplied.toLocaleString()}.00`;
+        }
+
+        // Split Modal
+        function openSplitModal(paymentId) {
+            currentPayment = paymentData.find(p => p.id === paymentId);
+            if (!currentPayment) return;
+            
+            splitCustomers = [];
+            document.getElementById('customerSelect').value = '';
+            document.getElementById('customersContainer').innerHTML = '<div class="empty-state">No customers selected</div>';
+            document.getElementById('splitSummary').style.display = 'none';
+            document.getElementById('availableAmount').textContent = `$${currentPayment.unapplied.toLocaleString()}.00`;
+            document.getElementById('splitModal').classList.add('active');
+            updateSplitSummary();
+        }
+
+        function closeSplitModal() {
+            document.getElementById('splitModal').classList.remove('active');
+            splitCustomers = [];
+        }
+
+        function addCustomer() {
+            const select = document.getElementById('customerSelect');
+            const customer = select.value;
+            if (!customer) return;
+
+            splitCustomers.push({ name: customer, amount: '' });
+            select.value = '';
+            renderSplitCustomers();
+            updateSplitSummary();
+        }
+
+        function renderSplitCustomers() {
+            const container = document.getElementById('customersContainer');
+            
+            if (splitCustomers.length === 0) {
+                container.innerHTML = '<div class="empty-state">No customers selected</div>';
+                document.getElementById('splitSummary').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('splitSummary').style.display = 'block';
+            
+            let html = '';
+            splitCustomers.forEach(function(customer, index) {
+                html += '<div class="customer-item">';
+                html += '<div class="customer-header">';
+                html += '<span style="font-weight: 500;">' + customer.name + '</span>';
+                html += '<button class="close-btn" onclick="removeCustomer(' + index + ')">×</button>';
+                html += '</div>';
+                html += '<div class="form-group" style="margin-bottom: 0;">';
+                html += '<label>Amount</label>';
+                html += '<input type="number" value="' + customer.amount + '" onchange="updateCustomerAmount(' + index + ', this.value)" placeholder="0">';
+                html += '</div>';
+                html += '</div>';
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function removeCustomer(index) {
+            splitCustomers.splice(index, 1);
+            renderSplitCustomers();
+            updateSplitSummary();
+        }
+
+        function updateCustomerAmount(index, amount) {
+            splitCustomers[index].amount = amount;
+            updateSplitSummary();
+        }
+
+        function updateSplitSummary() {
+            let total = 0;
+            splitCustomers.forEach(c => {
+                total += parseFloat(c.amount || 0);
+            });
+            
+            const remaining = currentPayment.unapplied - total;
+            
+            document.getElementById('totalAllocated').textContent = `$${total.toLocaleString()}.00`;
+            document.getElementById('remaining').textContent = `$${remaining.toLocaleString()}.00`;
+            
+            const submitBtn = document.getElementById('submitSplitBtn');
+            submitBtn.disabled = total === 0 || total > currentPayment.unapplied;
+        }
+
+        function submitSplit() {
+            alert('Payment split successfully!');
+            closeSplitModal();
+        }
+
+        // Adjustment Modal
+        function openAdjustmentModal() {
+            document.getElementById('adjustmentModal').classList.add('active');
+        }
+
+        function closeAdjustmentModal() {
+            document.getElementById('adjustmentModal').classList.remove('active');
+            document.getElementById('adjustmentAmount').value = '';
+            document.getElementById('adjustmentDesc').value = '';
+        }
+
+        function submitAdjustment() {
+            const amount = document.getElementById('adjustmentAmount').value;
+            if (!amount) return;
+            
+            alert('Adjustment added successfully!');
+            closeAdjustmentModal();
+        }
+
+        // Email Modal
+        function openEmailModal() {
+            const subject = `Payment Receipt Request: Payment #${currentPayment.id}`;
+            const message = `Dear ${currentPayment.customer},
+
+We received a payment of $${currentPayment.amount.toLocaleString()} on ${currentPayment.displayDate}
+(Reference: ${currentPayment.reference})
+
+To help us properly allocate this payment, could you please provide the invoice numbers and amounts this payment covers?
+
+Thank you for your assistance.`;
+
+            document.getElementById('emailSubject').value = subject;
+            document.getElementById('emailMessage').value = message;
+            document.getElementById('emailModal').classList.add('active');
+        }
+
+        function closeEmailModal() {
+            document.getElementById('emailModal').classList.remove('active');
+        }
+
+        function sendEmail() {
+            alert('Email sent successfully!');
+            closeEmailModal();
+        }
+
+        // Initialize on page load
+        init();
+    </script>
+</body>
+</html>
