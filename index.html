@@ -247,6 +247,14 @@
         .table-actions {
             display: flex;
             gap: 8px;
+            align-items: center;
+        }
+
+        .bulk-actions {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
         }
 
         .btn {
@@ -631,6 +639,26 @@
             background: #fee2e2;
             color: #dc2626;
         }
+
+        .payment-checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        #selectAllPayments {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        tr.selected {
+            background-color: #f0f9ff !important;
+        }
+
+        .payment-checkbox:checked {
+            accent-color: #2563eb;
+        }
     </style>
 </head>
 <body>
@@ -642,32 +670,26 @@
         </div>
         <nav class="sidebar-nav">
             <div class="nav-item">
-                <span>🏠</span>
-                <span>Home</span>
+               <a class="active" href="../Homepage/index.html"> <span class="ico"></span> Home</a>
             </div>
             <div class="nav-item">
-                <span>📥</span>
-                <span>Inbox</span>
+                <a href="../inbox/index.html"> <span class="ico"></span> Inbox</a>
             </div>
             <div class="nav-item">
-                <span>👥</span>
-                <span>Customers</span>
+                <a href="../customer/index.html"> <span class="ico"></span> Customers</a>
             </div>
             <div class="nav-item">
-                <span>📄</span>
-                <span>Transactions</span>
+                <a href="../Transaction/index.html"> <span class="ico"></span> Transactions</a>
             </div>
             <div class="nav-item">
-                <span>📋</span>
-                <span>Collections</span>
+                <a href="../Collections/index.html"> <span class="ico"></span> Collections</a>
             </div>
             <div class="nav-item">
-                <span>📊</span>
+                
                 <span>Reports</span>
             </div>
             <div class="nav-item active">
-                <span>💰</span>
-                <span>Cash App</span>
+                 <a href="../Cashapp/index.html"> <span class="ico"></span> Cash App</a>
             </div>
         </nav>
     </div>
@@ -731,6 +753,15 @@
                         <button class="tab">Credit Memos</button>
                     </div>
                     <div class="table-actions">
+                        <div class="bulk-actions" id="bulkActions">
+                            <button class="btn btn-primary" onclick="bulkAddAdjustments()">
+                                + Add Adjustments
+                            </button>
+                            <button class="btn btn-dark" onclick="bulkPostToNetsuite()">
+                                📤 Post Netsuite
+                            </button>
+                            <span id="selectedCount" style="margin: 0 12px; color: #6b7280; font-size: 14px;"></span>
+                        </div>
                         <div class="search-box">
                             <span class="search-icon">🔍</span>
                             <input type="text" placeholder="Search">
@@ -743,6 +774,7 @@
                 <table>
                     <thead>
                         <tr>
+                            <th><input type="checkbox" id="selectAllPayments" onchange="toggleSelectAllPayments()"></th>
                             <th>Payment ID</th>
                             <th>Customer Name</th>
                             <th>Payment Date</th>
@@ -1021,8 +1053,8 @@
                 reference: "REF-4589",
                 paymentMode: "Wire Transfer",
                 source: "Bank Statement",
-                adjustmentStatus: "No Adjustments",
-                approvalStatus: "Pending Approval",
+                adjustmentStatus: "Pending Adjustment",
+                approvalStatus: "N/A",
                 invoices: [
                     { id: 'INV-2025-1234', date: 'Mar 15, 2025', dueDate: 'Apr 15, 2025', amount: 20000, balance: 20000 },
                     { id: 'INV-2025-1235', date: 'Mar 20, 2025', dueDate: 'Apr 20, 2025', amount: 15000, balance: 15000 }
@@ -1177,6 +1209,7 @@
         let currentView = 'payments';
         let allocatedAmounts = {};
         let isManualMode = false;
+        let selectedPayments = [];
 
         // Initialize
         function init() {
@@ -1214,6 +1247,7 @@
             const thead = document.querySelector('thead tr');
             if (view === 'payments') {
                 thead.innerHTML = `
+                    <th><input type="checkbox" id="selectAllPayments" onchange="toggleSelectAllPayments()"></th>
                     <th>Payment ID</th>
                     <th>Customer Name</th>
                     <th>Payment Date</th>
@@ -1245,6 +1279,121 @@
                     <th>Status</th>
                     <th>Actions</th>
                 `;
+            }
+        }
+
+        // Toggle select all payments
+        function toggleSelectAllPayments() {
+            const selectAll = document.getElementById('selectAllPayments');
+            const checkboxes = document.querySelectorAll('.payment-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+            
+            updateBulkActions();
+        }
+
+        // Update bulk actions visibility
+        function updateBulkActions() {
+            const checkboxes = document.querySelectorAll('.payment-checkbox');
+            selectedPayments = [];
+            
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    selectedPayments.push(checkbox.value);
+                }
+            });
+            
+            const bulkActions = document.getElementById('bulkActions');
+            const selectedCount = document.getElementById('selectedCount');
+            
+            if (selectedPayments.length > 0) {
+                bulkActions.style.display = 'flex';
+                bulkActions.style.alignItems = 'center';
+                bulkActions.style.gap = '8px';
+                selectedCount.textContent = `${selectedPayments.length} selected`;
+            } else {
+                bulkActions.style.display = 'none';
+            }
+        }
+
+        // Bulk add adjustments
+        function bulkAddAdjustments() {
+            if (selectedPayments.length === 0) {
+                alert('Please select at least one payment to add adjustments.');
+                return;
+            }
+            
+            const paymentNames = selectedPayments.map(id => {
+                const payment = paymentData.find(p => p.id === id);
+                return payment ? payment.customer : id;
+            }).join(', ');
+            
+            if (confirm(`Add adjustments to the following payments?\n\n${paymentNames}`)) {
+                showLoading();
+                
+                // Simulate API call
+                setTimeout(() => {
+                    hideLoading();
+                    
+                    // Update payment data
+                    selectedPayments.forEach(paymentId => {
+                        const payment = paymentData.find(p => p.id === paymentId);
+                        if (payment) {
+                            payment.adjustmentStatus = 'Adjustments Added';
+                        }
+                    });
+                    
+                    renderPaymentsTable();
+                    alert(`Adjustments added successfully to ${selectedPayments.length} payment(s)!`);
+                    selectedPayments = [];
+                }, 1500);
+            }
+        }
+
+        // Bulk post to Netsuite
+        function bulkPostToNetsuite() {
+            if (selectedPayments.length === 0) {
+                alert('Please select at least one payment to post to Netsuite.');
+                return;
+            }
+            
+            const eligiblePayments = selectedPayments.filter(paymentId => {
+                const payment = paymentData.find(p => p.id === paymentId);
+                return payment && payment.unapplied === 0; // Only post fully applied payments
+            });
+            
+            if (eligiblePayments.length === 0) {
+                alert('Only fully applied payments can be posted to Netsuite. Please ensure all selected payments have $0 unapplied amount.');
+                return;
+            }
+            
+            const paymentNames = eligiblePayments.map(id => {
+                const payment = paymentData.find(p => p.id === id);
+                return payment ? `${payment.customer} (${payment.id})` : id;
+            }).join('\n');
+            
+            if (confirm(`Post the following payments to Netsuite?\n\n${paymentNames}`)) {
+                showLoading();
+                
+                // Simulate API call to Netsuite
+                setTimeout(() => {
+                    hideLoading();
+                    
+                    // Update payment data
+                    eligiblePayments.forEach(paymentId => {
+                        const payment = paymentData.find(p => p.id === paymentId);
+                        if (payment) {
+                            payment.approvalStatus = 'Posted';
+                            payment.status = 'posted';
+                        }
+                    });
+                    
+                    renderPaymentsTable();
+                    alert(`Successfully posted ${eligiblePayments.length} payment(s) to Netsuite!`);
+                    selectedPayments = [];
+                }, 2000);
             }
         }
 
@@ -1290,6 +1439,9 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>
+                        <input type="checkbox" class="payment-checkbox" value="${payment.id}" onchange="updateBulkActions()">
+                    </td>
+                    <td>
                         <div class="payment-id-cell">
                             <span style="font-weight: 500;">${payment.id}</span>
                             <button class="plus-btn" onclick="openSplitModal('${payment.id}')">+</button>
@@ -1322,6 +1474,8 @@
                 `;
                 tbody.appendChild(row);
             });
+            
+            updateBulkActions();
         }
 
         // Render remittances table
@@ -1584,9 +1738,14 @@
             }
 
             currentPayment.invoices.forEach(invoice => {
+                const isSelected = selectedInvoices.includes(invoice.id);
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><input type="checkbox" onchange="toggleInvoice('${invoice.id}')"></td>
+                    <td>
+                        <input type="checkbox" 
+                               ${isSelected ? 'checked' : ''} 
+                               onchange="toggleInvoice('${invoice.id}')">
+                    </td>
                     <td style="font-weight: 500;">${invoice.id}</td>
                     <td>${invoice.date}</td>
                     <td>${invoice.dueDate}</td>
@@ -1599,7 +1758,9 @@
 
         // Toggle invoice selection
         function toggleInvoice(invoiceId) {
+            const checkbox = event.target;
             const index = selectedInvoices.indexOf(invoiceId);
+            
             if (index > -1) {
                 selectedInvoices.splice(index, 1);
                 delete allocatedAmounts[invoiceId];
@@ -1607,20 +1768,10 @@
                 selectedInvoices.push(invoiceId);
                 const invoice = currentPayment.invoices.find(i => i.id === invoiceId);
                 if (invoice) {
-                    allocatedAmounts[invoiceId] = isManualMode ? 0 : invoice.balance;
+                    allocatedAmounts[invoiceId] = isManualMode ? 0 : Math.min(invoice.balance, currentPayment.unapplied);
                 }
             }
             updateApplyPayment();
-        }
-
-        // Update allocated amount for an invoice
-        function updateAllocatedAmount(invoiceId, amount) {
-            const invoice = currentPayment.invoices.find(i => i.id === invoiceId);
-            if (invoice) {
-                const maxAmount = Math.min(invoice.balance, currentPayment.unapplied);
-                allocatedAmounts[invoiceId] = Math.min(amount, maxAmount);
-                updateApplyPayment();
-            }
         }
 
         // Update apply payment section
@@ -1670,6 +1821,16 @@
             const unapplied = currentPayment.amount - totalApplied;
             document.getElementById('infoTotalApplied').textContent = `$${totalApplied.toLocaleString()}.00`;
             document.getElementById('infoUnapplied').textContent = `$${unapplied.toLocaleString()}.00`;
+        }
+
+        // Update allocated amount for an invoice
+        function updateAllocatedAmount(invoiceId, amount) {
+            const invoice = currentPayment.invoices.find(i => i.id === invoiceId);
+            if (invoice) {
+                const maxAmount = Math.min(invoice.balance, currentPayment.unapplied);
+                allocatedAmounts[invoiceId] = Math.min(amount, maxAmount);
+                updateApplyPayment();
+            }
         }
 
         // Split Modal
